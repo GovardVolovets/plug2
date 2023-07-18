@@ -1,5 +1,8 @@
 package ru.perfomance.lab.Controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -15,12 +18,19 @@ import java.util.concurrent.ThreadLocalRandom;
 @RestController
 public class MainController {
 
+    private Logger log = LoggerFactory.getLogger(MainController.class);
+
+    ObjectMapper mapper = new ObjectMapper();
+
+    public long start_time = 0L;
+
     @PostMapping(
             value = "/info/postBalances",
             produces = MediaType.APPLICATION_JSON_VALUE,
             consumes = MediaType.APPLICATION_JSON_VALUE
+            
     )
-    public ResponseEntity<Object> postBalances(@RequestBody RequestDTO requestDTO) {
+    public Object postBalances(@RequestBody RequestDTO requestDTO) {
         try {
             String clientId = requestDTO.getClientId();
             char firstDigit = clientId.charAt(0);
@@ -38,7 +48,9 @@ public class MainController {
                 currency = "RUB";
             }
 
+//            String RqUID = requestDTO.getRqUID();
             ResponseDTO responseDTO = new ResponseDTO();
+
             responseDTO.setRqUID(requestDTO.getRqUID());
             responseDTO.setClientId(clientId);
             responseDTO.setAccount(requestDTO.getAccount());
@@ -46,7 +58,17 @@ public class MainController {
             responseDTO.setBalance(generateRandomBalance(maxLimit));
             responseDTO.setMaxLimit(maxLimit);
 
+            log.error("***** Запрос *****" + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(requestDTO));
+            log.error("***** Ответ *****" + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(responseDTO));
+
+            long pacing = ThreadLocalRandom.current().nextLong(100, 500);
+            long end_time = System.currentTimeMillis();
+            if (end_time - start_time < pacing)
+                Thread.sleep(pacing - (end_time - start_time));
+
             return ResponseEntity.ok(responseDTO);
+//            return responseDTO;
+//            return ResponseEntity.ok().body(responseDTO);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
